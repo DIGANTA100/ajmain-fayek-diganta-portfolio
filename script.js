@@ -306,3 +306,111 @@ console.log(
   '%cThis portfolio was built by Ajmain Fayek Diganta.\nIf you\'re reading this, you\'re probably a developer too — feel free to connect!',
   'color:#94a3b8;font-size:0.9rem;'
 );
+
+/* ═══════════════════════════════════════════════
+   JOURNEY — FILTER & LIGHTBOX
+═══════════════════════════════════════════════ */
+
+/* ── JOURNEY FILTER TABS ── */
+(function initJourneyFilter() {
+  const btns  = document.querySelectorAll('.jf-btn');
+  const items = document.querySelectorAll('.jt-item');
+  if (!btns.length || !items.length) return;
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Active tab
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const filter = btn.dataset.filter;
+
+      items.forEach(item => {
+        const cat = item.dataset.category;
+        if (filter === 'all' || cat === filter) {
+          item.classList.remove('filtered-out');
+          // Re-trigger reveal animation
+          if (!item.classList.contains('visible')) {
+            item.classList.add('visible');
+          }
+        } else {
+          item.classList.add('filtered-out');
+        }
+      });
+    });
+  });
+})();
+
+/* ── LIGHTBOX ── */
+let lbImages  = [];
+let lbIndex   = 0;
+
+function openLightbox(slotEl) {
+  const card = slotEl.closest('.jt-card');
+  const title = card ? card.querySelector('.jt-title').textContent : '';
+
+  // Collect all valid images in the same gallery
+  const gallery = slotEl.closest('.jt-gallery');
+  const slots   = gallery ? [...gallery.querySelectorAll('.jt-img-slot')] : [slotEl];
+
+  lbImages = slots
+    .map(s => {
+      const img = s.querySelector('img');
+      return img && img.complete && img.naturalWidth > 0
+        ? { src: img.src, alt: img.alt || title }
+        : null;
+    })
+    .filter(Boolean);
+
+  // Find clicked index
+  const clickedImg = slotEl.querySelector('img');
+  lbIndex = lbImages.findIndex(i => i.src === (clickedImg && clickedImg.src));
+  if (lbIndex === -1) lbIndex = 0;
+
+  if (!lbImages.length) return; // no loaded images — skip
+
+  renderLightbox();
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderLightbox() {
+  const img  = document.getElementById('lbImg');
+  const cap  = document.getElementById('lbCaption');
+  const curr = lbImages[lbIndex];
+  img.src      = curr.src;
+  img.alt      = curr.alt;
+  cap.textContent = curr.alt + (lbImages.length > 1 ? `  (${lbIndex + 1} / ${lbImages.length})` : '');
+
+  // Show/hide nav arrows
+  const prev = document.querySelector('.lb-prev');
+  const next = document.querySelector('.lb-next');
+  if (prev) prev.style.display = lbImages.length > 1 ? 'flex' : 'none';
+  if (next) next.style.display = lbImages.length > 1 ? 'flex' : 'none';
+}
+
+function lbNav(dir) {
+  lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
+  const img = document.getElementById('lbImg');
+  img.style.opacity = '0';
+  img.style.transition = 'opacity .15s';
+  setTimeout(() => {
+    renderLightbox();
+    img.style.opacity = '1';
+  }, 150);
+}
+
+function closeLightbox(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+  lbImages = [];
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+  if (e.key === 'Escape')     closeLightbox();
+});
